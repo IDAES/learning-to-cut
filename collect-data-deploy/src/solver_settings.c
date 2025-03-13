@@ -17,10 +17,9 @@ SCIP_RETCODE set_solver_settings(SCIP* scip, int seed1, int seed2, int seed3) {
     SCIP_CALL( SCIPsetIntParam(scip, "randomization/randomseedshift", seed2) );
     SCIP_CALL( SCIPsetIntParam(scip, "randomization/lpseed", seed3) );
 
-    #ifndef COLLECT_DATA_MODE
     SCIP_CALL( SCIPsetIntParam(scip, "display/verblevel", 0) );
-    SCIP_CALL( SCIPsetIntParam(scip, "timing/clocktype", 2) ); //1: CPU time, 2: Wallclock time
-    #endif
+
+
 
     return SCIP_OKAY;
 

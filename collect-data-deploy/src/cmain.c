@@ -75,7 +75,7 @@ SCIP_RETCODE runShell(char** argv)
    char command[MAXCHAR];
 
    int result = snprintf(command, sizeof(command), "mkdir -p %s", data_dir);
-   printf("Result of snprintf %d\n", result);
+   //printf("Result of snprintf %d\n", result);
 
    int status = system(command);
 
