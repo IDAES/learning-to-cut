@@ -11,13 +11,10 @@ mapfile -t ev_inst_array < problem-lists/evaluation_instances_list.txt
 
 N=${#ev_inst_array[@]}
 
-echo $N
-
 BEGIN=0
-#END=$((N - 1))
-END=0
+END=$((N - 1))
 
-SEED_LIST=($(<${HOME}/p-nsahinidis3-0/learn2branch-experiments/ac-tiny-cU-001p/main_sub_seeds.txt))
+SEED_LIST=($(<$PWD/evaluation_seeds.txt))
 SEED_LIST=${SEED_LIST[MAIN_SEED]}
 
 IFS=$','; split=($SEED_LIST); unset IFS;

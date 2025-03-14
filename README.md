@@ -24,6 +24,18 @@ Our base instance is `or-lib/10_0_1_w`, a unit commitment problem from the UnitC
 All instances reside in the `instances/` folder. The split of problems into training, validation, test and evaluation sets are provided in the `problem-lists/` folder.
 
 ## Data Collection
+To collect data for the training dataset, run
+
+`bash part1-collect-data.sh train`
+
+For the validation and test datasets, replace the argument `train` with `valid` and `test`, respectively.
+
+## Datasets
+
+## Building models
+
+## Evaluating cut selectors
+
 
 ## References
 
