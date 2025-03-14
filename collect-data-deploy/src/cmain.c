@@ -16,7 +16,7 @@
 #include "solver_settings.h"
 #include "helper_functions.h"
 
-int counter = 0;
+int cut_counter = 0;
 
 int cutsel_counter = 0;
 
@@ -219,10 +219,11 @@ SCIP_RETCODE runShell(char** argv)
    SCIP_CALL( SCIPreadSol(scip, solfilename) );
 
    SCIP_CALL( SCIPallocBlockMemoryArray(scip, &features, n_features * ncuts_alloc) );
+
+
+   #ifdef COLLECT_DATA_MODE
    SCIP_CALL( SCIPallocBlockMemoryArray(scip, &cut_bound_imp, ncuts_alloc) );
-
-
-   #ifndef COLLECT_DATA_MODE
+   #else
    struct timeval walltime_begin, walltime_end;
    struct tms cputime_begin, cputime_end;
 
@@ -234,7 +235,11 @@ SCIP_RETCODE runShell(char** argv)
 
    SCIP_CALL( SCIPsolve(scip) );
 
-   #ifndef COLLECT_DATA_MODE
+   #ifdef COLLECT_DATA_MODE
+
+   SCIPfreeBlockMemoryArray(scip, &cut_bound_imp, ncuts_alloc);
+
+   #else
    clock_t processtime_end = clock();
    gettimeofday(&walltime_end, NULL);
    (void)times(&cputime_end);
@@ -247,7 +252,7 @@ SCIP_RETCODE runShell(char** argv)
    #endif
 
    SCIPfreeBlockMemoryArray(scip, &features, n_features * ncuts_alloc);
-   SCIPfreeBlockMemoryArray(scip, &cut_bound_imp, ncuts_alloc);
+
 
    #ifndef COLLECT_DATA_MODE
    char status_str[50];

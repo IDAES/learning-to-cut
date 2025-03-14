@@ -4,6 +4,7 @@
 
 #define MAXCHAR 4095
 
+extern int cut_counter;
 extern int cutsel_counter;
 
 extern SCIP_Real* features;

@@ -277,6 +277,7 @@ SCIP_DECL_CUTSELSELECT(cutselSelectFeatures)
 
    #ifdef COLLECT_DATA_MODE
    printf("Collected data on %d candidate cuts\n", ncuts);
+   cut_counter += ncuts;
    char node_id[MAXCHAR];
    sprintf(node_id, "%lld_%lld_sepr_%d", SCIPgetNNodes(scip), SCIPgetNLPs(scip), SCIPgetNSepaRounds(scip));
 
