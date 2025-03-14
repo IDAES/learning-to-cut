@@ -124,11 +124,11 @@ SCIP_RETCODE runShell(char** argv)
    FILE* reg_model_file;
    char reg_model_file_name[MAXCHAR];
 
-   strcpy(reg_model_file_name, "../../../models_reg/");
+   strcpy(reg_model_file_name, "../../../models/");
    strcat(reg_model_file_name, score_type);
    strcat(reg_model_file_name, "/");
    strcat(reg_model_file_name, argv[1]);
-   strcat(reg_model_file_name, "/glmnet_lasso_quadratic_model.txt");
+   strcat(reg_model_file_name, "/lasso_quadratic_model.txt");
 
    reg_model_file = fopen(reg_model_file_name, "r");
 
@@ -220,10 +220,10 @@ SCIP_RETCODE runShell(char** argv)
 
    SCIP_CALL( SCIPallocBlockMemoryArray(scip, &features, n_features * ncuts_alloc) );
 
-
-   #ifdef COLLECT_DATA_MODE
    SCIP_CALL( SCIPallocBlockMemoryArray(scip, &cut_bound_imp, ncuts_alloc) );
-   #else
+
+   #ifndef COLLECT_DATA_MODE
+
    struct timeval walltime_begin, walltime_end;
    struct tms cputime_begin, cputime_end;
 
@@ -235,11 +235,10 @@ SCIP_RETCODE runShell(char** argv)
 
    SCIP_CALL( SCIPsolve(scip) );
 
-   #ifdef COLLECT_DATA_MODE
-
    SCIPfreeBlockMemoryArray(scip, &cut_bound_imp, ncuts_alloc);
 
-   #else
+   #ifndef COLLECT_DATA_MODE
+
    clock_t processtime_end = clock();
    gettimeofday(&walltime_end, NULL);
    (void)times(&cputime_end);
@@ -361,8 +360,11 @@ SCIP_RETCODE runShell(char** argv)
 
 int main(int argc, char** argv)
 {
-   if (argc != 9)
+   if (argc != 9) {
+      printf("You entered %d arguments. Please enter 9.\n", argc);
       return -1;
+   }
+      
 
    SCIP_RETCODE retcode;
 
