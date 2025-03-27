@@ -19,7 +19,7 @@ SCIP_RETCODE set_solver_settings(SCIP* scip, int seed1, int seed2, int seed3) {
 
     SCIP_CALL( SCIPsetIntParam(scip, "display/verblevel", 0) );
 
-
+    SCIP_CALL( SCIPsetIntParam(scip, "timing/clocktype", 2) );
 
     return SCIP_OKAY;
 

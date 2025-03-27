@@ -1,3 +1,5 @@
 #!/usr/bin/bash
 
-python create_datasets.py -s 0
+SEED=$1
+
+python create_datasets.py -s $SEED

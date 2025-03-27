@@ -1,5 +1,3 @@
-library("pROC")
-
 goodness_of_fit_reg <- function(y, yhat) {
 
   mse = mean((y - yhat)^2)

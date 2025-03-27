@@ -2,16 +2,18 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
-import pathlib
 import copy
 import os
-import sys
 import glob
-
+import json
+import shutil
 import natsort
 
 EPS=10**-6
-HOME=os.environ["HOME"]
+
+def load_allowed_targets():
+    with open("targets.json", "r") as f:
+        return json.load(f)["all_targets"]
 
 from cutting_plane_features import feat_names
 
@@ -22,11 +24,9 @@ if __name__ == '__main__':
         '-s', '--seed',
         help='Random generator seed.',
         type=int,
+        choices=[0,1,2,3,4],
         default=0,
     )
-
-    HOME = os.environ["HOME"]
-    SCRATCHDIR = f"{HOME}/scratch"
 
     args = parser.parse_args()
 
@@ -44,43 +44,39 @@ if __name__ == '__main__':
 
     feat_names_dict = feat_names()
 
-    target_names = ["Score", "logScore", "normScore", "relativeScore"]
-
-    n_targets = len(target_names)
+    target_names = load_allowed_targets()
     
-    feat_names = [f"Feat_{i}_{feat_names_dict[i]}" for i in range(len(feat_names_dict))]
-
-    col_names = np.concatenate((feat_names, target_names))
+    feat_names = [f"F_{i+1}_{feat_names_dict[i]}" for i in range(len(feat_names_dict))]
 
     n_targets = len(target_names)
 
-    sample_folder = f"data"
+    sample_folder = "data"
 
-    x_dict = {}
-    y_dict = {}
+    x = {}
 
-    ncands_dict = {}
+    ncands = {}
 
     for dataset_type in ["train", "valid", "test"]:
-        print("Dataset type: ", dataset_type)
+        print("\nDataset: ", dataset_type)
 
         nsamples = 0
         
-        x_dict[dataset_type] = []
-        y_dict[dataset_type] = []
+        x[dataset_type] = []
 
-        ncands_dict[dataset_type] = 0
+        ncands[dataset_type] = 0
 
         files = glob.glob(f"{sample_folder}/{dataset_type}" + "/**/*_features.txt", recursive=True)
 
-        print(f"{dataset_type}")
-        print(f"Total # LP solves: ", len(files))
+        print(f"\nTotal # LP solves: ", len(files))
         total_lines = 0
         for file_path in files:
             with open(file_path, 'r', encoding='utf-8') as f:
                 total_lines += sum(1 for _ in f)
-
+        
         print(f"Total # observations in all files: {total_lines}")
+
+        if total_lines < max_size[dataset_type]:
+            raise Exception("Total # observations not enough")
 
         files = natsort.natsorted(files)
 
@@ -109,83 +105,58 @@ if __name__ == '__main__':
             cut_scores = [float(sc) for sc in cut_scores]
             cut_scores = np.array(cut_scores)
 
-            feat_arr = np.array(copy.deepcopy(feat_df))
-
-            nsamples += 1
-
             norm_factor = np.sqrt(sum(np.square(cut_scores)))
             if norm_factor <= 0:
                 norm_factor = 1
-
-            score1 = cut_scores
-
-            score2 = np.array([np.log(x) if x>EPS else 0 for x in score1])
-
-            score3 = cut_scores / norm_factor
-
             max_score = np.max(cut_scores)
 
-            if max_score <= 0:
-                score4 = cut_scores
+            for t in target_names:
+                if t == "Score":
+                    feat_df["Score"] = cut_scores
+                elif t == "normScore":
+                    feat_df["normScore"] = cut_scores / norm_factor
+                elif t == "relativeScore":
+                    if max_score <= 0:
+                        feat_df["relativeScore"] = cut_scores
+                    else:
+                        feat_df["relativeScore"] = cut_scores / max_score
+                elif t == "logScore":
+                    feat_df["logScore"] = np.array([np.log(x) if x>EPS else 0 for x in cut_scores])
+                else:
+                    raise Exception
+
+            nsamples += 1
+
+            if ncands[dataset_type] + feat_df.shape[0] > max_size[dataset_type]:
+                cands_in_excess = ncands[dataset_type] + feat_df.shape[0] - max_size[dataset_type]
+                row_ids = feat_df.shape[0] - cands_in_excess
+                if row_ids > 0:
+                    x[dataset_type].append(feat_df.iloc[0:row_ids,:])
+                    ncands[dataset_type] += row_ids
+                    break
             else:
-                score4 = cut_scores / max_score
+                x[dataset_type].append(feat_df)
+                ncands[dataset_type] += feat_df.shape[0]
 
-            cand_targets = np.column_stack((score1,score2, score3, score4))
-
-            x_dict[dataset_type].append(feat_arr)
-            y_dict[dataset_type].append(cand_targets)
-
-            ncands_dict[dataset_type] += feat_arr.shape[0]
-
-            if ncands_dict[dataset_type] >= max_size[dataset_type]:
+            if ncands[dataset_type] >= max_size[dataset_type]:
                 break
-   
 
-        print("Total # cands: ", ncands_dict[dataset_type])
+        print("\n# cands in dataset: ", ncands[dataset_type])
 
         print("# LP solves in dataset: ", nsamples)
 
-        if ncands_dict[dataset_type] > 0:
-            x_dict[dataset_type] = np.concatenate(x_dict[dataset_type])
-            y_dict[dataset_type] = np.concatenate(y_dict[dataset_type])
+        x[dataset_type] = np.concatenate(x[dataset_type])
 
-        if ncands_dict[dataset_type] > max_size[dataset_type]:
-            n = max_size[dataset_type]
-            x_dict[dataset_type] = x_dict[dataset_type][0:n]
-            y_dict[dataset_type] = y_dict[dataset_type][0:n]
-
-            ncands_dict[dataset_type] = n
-
-    train_dataset = np.concatenate((x_dict["train"], y_dict["train"]), axis = 1)
-    valid_dataset = np.concatenate((x_dict["valid"], y_dict["valid"]), axis = 1)
-    test_dataset = np.concatenate((x_dict["test"], y_dict["test"]), axis = 1)
-
-    train_df = pd.DataFrame(train_dataset, columns = col_names)
-    valid_df = pd.DataFrame(valid_dataset, columns = col_names)
-    test_df = pd.DataFrame(test_dataset, columns = col_names)
+    train_df = pd.DataFrame(x["train"], columns = feat_names + target_names)
+    valid_df = pd.DataFrame(x["valid"], columns = feat_names + target_names)
+    test_df = pd.DataFrame(x["test"], columns = feat_names + target_names)
 
     p_dataset_dir = f"datasets/{seed}"
-
-    os.makedirs(f"{p_dataset_dir}", exist_ok=True)
-
-    try:
-        os.remove(f"{p_dataset_dir}/train.csv")
-    except OSError:
-        pass
-    try:
-        os.remove(f"{p_dataset_dir}/valid.csv")
-    except OSError:
-        pass
-    try:
-        os.remove(f"{p_dataset_dir}/test.csv")
-    except OSError:
-        pass
     
-    # Ignore original datasets, keep preprocessed only
-    #train_df.to_csv(f"{dataset_dir}/train.csv", index = False)
-    #valid_df.to_csv(f"{dataset_dir}/valid.csv", index = False)
-    #test_df.to_csv(f"{dataset_dir}/test.csv", index = False)
+    shutil.rmtree(p_dataset_dir)
 
+    os.makedirs(p_dataset_dir)
+    
     train_features = train_df.iloc[:,:-n_targets]
     train_targets = train_df.iloc[:,-n_targets:]
 
@@ -195,11 +166,7 @@ if __name__ == '__main__':
     test_features = test_df.iloc[:,:-n_targets]
     test_targets = test_df.iloc[:,-n_targets:]
 
-    # Remove constant columns
-
-    #pd.set_option('display.max_rows', None)
-
-    nonconstant_columns = train_features.std() > (10 ** -10) # Ignore target columns
+    nonconstant_columns = train_features.std() > (10 ** -10)
 
     train_features = train_features.loc[:, nonconstant_columns]
     valid_features = valid_features.loc[:, nonconstant_columns]
@@ -223,7 +190,6 @@ if __name__ == '__main__':
     valid_df.to_csv(f"{p_dataset_dir}/valid.csv", index = False)
     test_df.to_csv(f"{p_dataset_dir}/test.csv", index = False)
 
-    print("Prep. Regression df shapes: ", train_df.shape, valid_df.shape, test_df.shape)
+    print("Preprocessed datasets nobs: ", train_df.shape[0], valid_df.shape[0], test_df.shape[0])
 
-    print("Selected features: ")
-    print(train_features.columns.to_list())
+    print("N features: ", train_features.shape[1])

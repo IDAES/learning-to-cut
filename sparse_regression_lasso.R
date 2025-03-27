@@ -1,9 +1,14 @@
 library("glmnet")
-library("pracma")
 library("optparse")
 library("gsubfn")
+library("jsonlite")
 
-source("sparse_regression_utilities.R")
+source("utilities.R")
+
+load_allowed_targets <- function() {
+  allowed_targets <- fromJSON("targets.json")
+  return(allowed_targets$all_targets)
+}
 
 a = Sys.time()
 
@@ -18,15 +23,19 @@ option_list <- list(
 DIR_str = "./"
 
 opt <- parse_args(OptionParser(option_list=option_list), positional_arguments = TRUE)
-print(opt)
 
 seed = opt$options$seed
 
 sc_type = opt$options$score
 
-feature_type="quadratic"
+print(paste0("Target: ", sc_type, ", Seed: ", seed))
 
-# simplebb_Score_all_khalil_norm_gnn_norm
+target_columns <- load_allowed_targets()
+
+if ((sc_type %in% target_columns) == FALSE)
+stop("Target not allowed")
+
+feature_type="quadratic"
 
 main_dir = "models"
 
@@ -42,16 +51,11 @@ dir.create(file.path(sub_model_dir, seed), showWarnings = FALSE)
 
 sub_model_dir = paste(sub_model_dir, "/", seed, "/", sep="")
 
-
 dataset_dir = "./datasets"
 
-filename = paste(dataset_dir, "/", seed, "/train.csv", sep="")
-train_df = read.csv(filename)
+train_df = read.csv(paste(dataset_dir, "/", seed, "/train.csv", sep=""))
 
-filename = paste(dataset_dir, "/", seed, "/valid.csv", sep="")
-valid_df = read.csv(filename)
-
-target_columns = c("Score","logScore","normScore","relativeScore")
+valid_df = read.csv(paste(dataset_dir, "/", seed, "/valid.csv", sep=""))
 
 elim_columns = c()
 
@@ -75,11 +79,11 @@ if (feature_type == "simple") {
 
 formula=as.formula(formula_str)
 
-result =which(is.na(train_x), arr.ind = TRUE)
-print(result)
-
 train_x[, sc_type] <- train_y
 valid_x[, sc_type] <- valid_y
+
+if (nrow(which(is.na(train_x), arr.ind = TRUE)) > 0) stop("NAs in training dataset")
+if (nrow(which(is.na(valid_x), arr.ind = TRUE)) > 0) stop("NAs in validation dataset")
 
 train_X = model.matrix(formula, train_x)
 valid_X = model.matrix(formula, valid_x)
@@ -128,9 +132,7 @@ for (i in 1:n_lambda) {
     best_model_indices = which(best_model_coefs_vec != 0)
     
     best_model_nnz = length(best_model_indices)
-
   }
-  
 }
 
 my_R_df = cbind(feat_names[best_model_indices], coef(my_model)[best_model_indices,best_model])
@@ -155,15 +157,11 @@ y_lab_str = paste("Predicted", sc_type, sep=" ")
 
 train_plotfile_name = paste(sub_model_dir, "lasso_", feature_type, "_train_plot.png", sep="")
 
-plot_parity(train_plotfile_name, "Training", train_df[,sc_type], train_preds[,best_model], x_lab_str, y_lab_str)
-
-max_dev(train_df[,sc_type], train_preds[,best_model])
+p = plot_parity(train_plotfile_name, "Training", train_df[,sc_type], train_preds[,best_model], x_lab_str, y_lab_str)
 
 valid_plotfile_name = paste(sub_model_dir, "lasso_", feature_type, "_valid_plot.png", sep="")
 
-plot_parity(valid_plotfile_name, "Valid", valid_df[,sc_type], valid_preds[,best_model], x_lab_str, y_lab_str)
-
-max_dev(valid_df[,sc_type], valid_preds[,best_model])
+p = plot_parity(valid_plotfile_name, "Valid", valid_df[,sc_type], valid_preds[,best_model], x_lab_str, y_lab_str)
 
 rm(train_df)
 rm(train_x)
@@ -173,16 +171,15 @@ rm(valid_df)
 rm(valid_x)
 rm(valid_X)
 
-# Record test performance
-filename = paste(dataset_dir, "/", seed, "/test.csv", sep="")
-
-test_df = read.csv(filename)
+test_df = read.csv(paste(dataset_dir, "/", seed, "/test.csv", sep=""))
 
 test_x = test_df[ , -which(names(test_df) %in% x_columns)]
 
 test_y = test_df[, sc_type]
 
 test_x[, sc_type] = test_y
+
+if (nrow(which(is.na(test_x), arr.ind = TRUE)) > 0) stop("NAs in test dataset")
 
 test_X = model.matrix(formula, test_x)
 
@@ -199,7 +196,7 @@ cat("Test MSE: ", test_mse, "\n", file = test_file, append = TRUE)
 
 test_plotfile_name = paste(sub_model_dir, "lasso_", feature_type, "_test_plot.png", sep="")
 
-plot_parity(test_plotfile_name, "Test", test_df[,sc_type], test_preds, x_lab_str, y_lab_str)
+p = plot_parity(test_plotfile_name, "Test", test_df[,sc_type], test_preds, x_lab_str, y_lab_str)
 
 # Create model file that the c program (sparse) will read
 
@@ -266,7 +263,4 @@ for (i in 1:best_model_nnz) {
   } else {
     cat(line, file = logfile, append = TRUE)
   }
-    
 }
-
-max_dev(test_y, test_preds)

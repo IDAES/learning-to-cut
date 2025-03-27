@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
-target=Score
+target=$1
 
-# target can be normScore, relativeScore or logScore
+# target can be Score, normScore, relativeScore or logScore
 
 Rscript sparse_regression_lasso.R -c $target

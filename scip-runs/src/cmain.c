@@ -64,16 +64,25 @@ SCIP_RETCODE runShell(char** argv)
    #ifdef TEST
    strcpy(result_dir, "../");
    #else
-   strcpy(result_dir, "../../results/");
+   if ( strcmp(solfilename, "-") == 0 )
+      strcpy(result_dir, "../../results-no-sol/");
+   else
+      strcpy(result_dir, "../../results/");
    #endif
    
    strcat(result_dir, cutselector);
 
    char command[MAXCHAR];
+   int nchars, status;
+   
+   nchars = snprintf(command, sizeof(command), "mkdir -p %s", result_dir);
 
-   int result = snprintf(command, sizeof(command), "mkdir -p %s", result_dir);
+   if ( (nchars >= MAXCHAR) || (nchars < 0) ) {
+      printf("nchars: %d Failed to create the command string.\n", nchars);
+      return -1;
+   }
 
-   int status = system(command);
+   status = system(command);
 
    if (status != 0) {
       printf("Failed to create directory %s.\n", result_dir);
@@ -89,7 +98,6 @@ SCIP_RETCODE runShell(char** argv)
    strcat(result_file_name, ".csv");
 
    result_file = fopen(result_file_name, "a");
-
 
    SCIP_CALL( SCIPcreate(&scip) );
 
@@ -112,7 +120,10 @@ SCIP_RETCODE runShell(char** argv)
 
    SCIP_CALL( SCIPreadProb(scip, filename, NULL) );
 
-   SCIP_CALL( SCIPreadSol(scip, solfilename) );
+   if ( strcmp(solfilename, "-") == 0 )
+      printf("Solution file not provided\n");
+   else
+      SCIP_CALL( SCIPreadSol(scip, solfilename) );
 
    struct timeval walltime_begin, walltime_end;
    struct tms cputime_begin, cputime_end;
@@ -188,7 +199,6 @@ SCIP_RETCODE runShell(char** argv)
    default:
       return SCIP_INVALIDDATA;
    }
-
 
    first_dual_bound = SCIPgetFirstLPDualboundRoot(scip);
 

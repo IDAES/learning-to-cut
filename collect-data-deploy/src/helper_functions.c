@@ -4,17 +4,17 @@
 #include "helper_functions.h"
 
 int is_prim_sol_at_lb(SCIP* scip, SCIP_COL* col) {
-	double lb_val = SCIPcolGetLb(col);
-	if (!SCIPisInfinity(scip, fabs(lb_val))) {
-		return SCIPisEQ(scip, SCIPcolGetPrimsol(col), lb_val);
+	double lb = SCIPcolGetLb(col);
+	if ( !SCIPisInfinity(scip, fabs(lb)) ) {
+		return SCIPisEQ(scip, SCIPcolGetPrimsol(col), lb);
 	}
 	return 0;
 }
 
 int is_prim_sol_at_ub(SCIP* scip, SCIP_COL* col) {
-	double ub_val = SCIPcolGetUb(col);
-	if (!SCIPisInfinity(scip, fabs(ub_val))) {
-		return SCIPisEQ(scip, SCIPcolGetPrimsol(col), ub_val);
+	double ub = SCIPcolGetUb(col);
+	if ( !SCIPisInfinity(scip, fabs(ub)) ) {
+		return SCIPisEQ(scip, SCIPcolGetPrimsol(col), ub);
 	}
 	return 0;
 }
@@ -27,6 +27,13 @@ SCIP_Real safe_div(SCIP_Real x, SCIP_Real y) {
       return x / y ;
 }
 
+SCIP_Bool is_zero(double x) {
+   if (fabs(x) <= TOL)
+      return TRUE;
+   else
+      return FALSE;
+}
+
 SCIP_Real square(SCIP_Real x) { 
    return x * x; 
 }
@@ -36,7 +43,7 @@ void initialize_statistics(SCIP* scip, Statistics *stats) {
     stats->sum_sq = 0.0;
     stats->min = SCIPinfinity(scip);
     stats->max = -1 * SCIPinfinity(scip);
-    stats->count = 0.0;
+    stats->count = 0;
 }
 
 void update_statistics(Statistics *stats, SCIP_Real value) {
@@ -469,9 +476,10 @@ void stats_constraints(SCIP* scip, SCIP_Real* stats_cons_arr) {
         int_sup = (SCIP_Real) SCIPgetRowNumIntCols(scip, row) / (SCIP_Real) SCIProwGetNNonz(row);
         sup = (SCIP_Real) SCIProwGetNNonz(row) / (SCIP_Real) SCIPgetNLPCols(scip);
         par = SCIPgetRowObjParallelism(scip, row);
-        exp_imp = obj_norm * par * eff;
+        //exp_imp = obj_norm * par * eff;
+        exp_imp = par * eff;
         viol = -1 * SCIPgetRowLPFeasibility(scip, row);
-        relative_viol = rhs == 0 ? -1 * SCIPgetRowLPFeasibility(scip, row) : -1 * SCIPgetRowLPFeasibility(scip, row) / rhs;
+        relative_viol = safe_div(-1 * SCIPgetRowLPFeasibility(scip, row), rhs);
         removable = (SCIP_Real) SCIProwIsRemovable(row);
         integ = (SCIP_Real) SCIProwIsIntegral(row);
         dual = SCIProwGetDualsol(row) / obj_norm * row_norm;
@@ -531,8 +539,6 @@ void stats_cut_coefs(SCIP* scip, SCIP_ROW* cut, SCIP_Real* cut_coefs) {
         cut_norm = SCIProwGetNorm(cut);
     }
 
-    
-
     Statistics coef_stats;
     initialize_statistics(scip, &coef_stats);
 
@@ -547,8 +553,6 @@ void stats_cut_coefs(SCIP* scip, SCIP_ROW* cut, SCIP_Real* cut_coefs) {
     calculate_mean_std(&coef_stats);
 
     copy_stats_to_features(&coef_stats, cut_coefs);
-
-
 }
 
 void stats_cut_parallelism(SCIP* scip, SCIP_ROW* cut, SCIP_Real* cut_parallelism) {

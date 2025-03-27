@@ -22,25 +22,11 @@ extern int reg_n_params;
 extern "C" {
 #endif
 
-
-/** creates the xyz separator and includes it in SCIP
- *
- * @ingroup CutSelectorIncludes
- */
 SCIP_EXPORT
 SCIP_RETCODE SCIPincludeCutselFeatures(
    SCIP*                 scip                /**< SCIP data structure */
    );
 
-/**@addtogroup CUTSELECTORS
- *
- * @{
- */
-
-/** perform a cut selection algorithm for the given array of cuts
- *
- *  The input cuts array should be resorted such that the selected cuts come first.
- */
 SCIP_EXPORT
 SCIP_RETCODE SCIPselectCutsFeatures(
    SCIP*                 scip,               /**< SCIP data structure */
@@ -51,14 +37,8 @@ SCIP_RETCODE SCIPselectCutsFeatures(
    int*                  nselectedcuts       /**< pointer to return number of selected cuts from cuts array */
    );
 
-
-/** @} */
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-
-
-

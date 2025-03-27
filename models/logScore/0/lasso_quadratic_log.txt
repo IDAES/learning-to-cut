@@ -1,0 +1,6 @@
+Seed: 0
+
+Best model: alpha = 0.0024842849906553 Train R2: 0.478009755024418 Train MSE: 0.816973317460551 Valid R2: 0.279551739159243 Valid MSE: 1.17109027774712
+Nonzeros: 126
+Elapsed time: 
+22.731 Seconds

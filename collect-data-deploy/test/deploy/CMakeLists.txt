@@ -10,7 +10,7 @@ endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
   set(SCIP_DIR /storage/home/hcoda1/0/sbayramoglu3/p-nsahinidis3-0/scipoptsuite-8.0.0/install/lib/cmake/scip)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(SCIP_DIR /storage/home/hcoda1/0/sbayramoglu3/p-nsahinidis3-0/scipoptsuite-8.0.0/install-dbg/lib/cmake/scip)
+  set(SCIP_DIR /storage/home/hcoda1/0/sbayramoglu3/p-nsahinidis3-0/scipoptsuite-8.0.0-selin-patch/install-dbg/lib/cmake/scip)
 endif()
 
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
@@ -45,5 +45,7 @@ endif()
 set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -Wshadow -fstrict-aliasing -Wstrict-aliasing -O3 -DNDEBUG")
 set(CMAKE_C_FLAGS_DEBUG "-Wall -Wextra -fstrict-aliasing -Wstrict-aliasing -Wshadow -g")
 set(CMAKE_VERBOSE_MAKEFILE)
+
+add_definitions(-DTEST)
 
 target_link_libraries(data ${SCIP_LIBRARIES} ${LIBM})

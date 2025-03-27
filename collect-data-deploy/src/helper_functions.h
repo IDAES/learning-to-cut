@@ -9,6 +9,8 @@ int is_prim_sol_at_ub(SCIP* scip, SCIP_COL* col);
 
 SCIP_Real safe_div(SCIP_Real x, SCIP_Real y);
 
+SCIP_Bool is_zero(double x);
+
 SCIP_Real square(SCIP_Real x);
 
 typedef struct {

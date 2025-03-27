@@ -180,11 +180,11 @@ SCIP_DECL_CUTSELSELECT(cutselSelectFeatures)
          features[i * n_features + j + 8] = cutseldata->stats_b[j];
       }
       for (j = 0; j < 60; j++) {
-         features[i * n_features + j + 12] = cutseldata->stats_vars[j]; //60 feats
+         features[i * n_features + j + 12] = cutseldata->stats_vars[j]; //60 feats: 12-71
       }
 
       for (j = 0; j < 44; j++) {
-         features[i * n_features + 72 + j] = cutseldata->stats_conss[j]; //44 feats
+         features[i * n_features + 72 + j] = cutseldata->stats_conss[j]; //44 feats: 72-115
       }
       //116 feats
       
@@ -225,13 +225,15 @@ SCIP_DECL_CUTSELSELECT(cutselSelectFeatures)
 
       features[i * n_features + 122] = -1 * SCIPgetRowLPFeasibility(scip, cut); //absolute violation
       
-      features[i * n_features + 123] = rhs == 0 ? -1 * SCIPgetRowLPFeasibility(scip, cut) : -1 * SCIPgetRowLPFeasibility(scip, cut) / rhs; // relative violation
+      features[i * n_features + 123] = safe_div(-1 * SCIPgetRowLPFeasibility(scip, cut), rhs); // relative violation
 
-      features[i * n_features + 124] = -1 * safe_div(SCIPgetRowLPFeasibility(scip, cut), row_norm); //efficacy
+      features[i * n_features + 124] = -1 * safe_div(SCIPgetRowLPFeasibility(scip, cut), row_norm); //efficacy or Euclidean distance cutoff by cut
 
       features[i * n_features + 125] = SCIPgetRowObjParallelism(scip, cut); // obj parallellism
 
-      features[i * n_features + 126] = SCIPgetObjNorm(scip) * features[i * n_features + 125] * features[i * n_features + 124]; // expected improvement
+      //features[i * n_features + 126] = SCIPgetObjNorm(scip) * features[i * n_features + 125] * features[i * n_features + 124]; // expected improvement
+
+      features[i * n_features + 126] = features[i * n_features + 125] * features[i * n_features + 124]; // expected improvement
 
       assert( SCIProwGetNNonz(cut) == cut->len );
 
@@ -320,23 +322,15 @@ SCIP_DECL_CUTSELSELECT(cutselSelectFeatures)
    #else // DEPLOY MODE
 
    for (i = 0; i < ncuts; i++)
-      cut_bound_imp[i] = 0.0;
+      cut_bound_imp[i] = reg_coef[0]; // intercept first
+   
+   for(j = 1; j < reg_n_params; j++) {
 
-   // Do regression, do not skip the intercept to get exact predictions
-   for(j = 0; j < reg_n_params; j++) {
-
-      //Single term
+      // Single term
       if( reg_model_int[j * 5] == 1 )
       {
-         // Intercept
-         if ( reg_model_int[j * 5 + 1] == -2 ) {
-            for(i = 0; i < ncuts; i++) {
-               cut_bound_imp[i] += reg_coef[j];
-            }
-
-         }
          // power = 1
-         else if ( reg_model_int[j * 5 + 2] == 1 ) {
+         if ( reg_model_int[j * 5 + 2] == 1 ) {
             for(i = 0; i < ncuts; i++) {
                cut_bound_imp[i] += ((features[i * n_features + reg_model_int[j * 5 + 1]]) * reg_coef[j]);
             }
@@ -351,7 +345,7 @@ SCIP_DECL_CUTSELSELECT(cutselSelectFeatures)
          }
       }
 
-      //Two terms
+      // Two terms
       else {
          for(i = 0; i < ncuts; i++) {
             cut_bound_imp[i] += ((features[i * n_features + reg_model_int[j * 5 + 1]] * features[i * n_features + reg_model_int[j * 5 + 3]]) * reg_coef[j]);
@@ -359,16 +353,18 @@ SCIP_DECL_CUTSELSELECT(cutselSelectFeatures)
       }
    }
 
-
+   
    for (i = 0; i < ncuts; i++)
    {  
+      #ifdef TEST
+      printf("Cut bound imp %d, %f\n", i, cut_bound_imp[i]);
+      #endif
       if (cut_bound_imp[i] > best_cut_score)
       {
          best_cut_score = cut_bound_imp[i];
          best_cut_id = i;
       }
    }
-
 
    assert(best_cut_id >= 0);
 

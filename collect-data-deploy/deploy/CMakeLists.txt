@@ -10,7 +10,7 @@ endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
   set(SCIP_DIR /storage/home/hcoda1/0/sbayramoglu3/p-nsahinidis3-0/scipoptsuite-8.0.0/install/lib/cmake/scip)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(SCIP_DIR /storage/home/hcoda1/0/sbayramoglu3/p-nsahinidis3-0/scipoptsuite-8.0.0/install-dbg/lib/cmake/scip)
+  set(SCIP_DIR /storage/home/hcoda1/0/sbayramoglu3/p-nsahinidis3-0/scipoptsuite-8.0.0-selin-patch/install-dbg/lib/cmake/scip)
 endif()
 
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")

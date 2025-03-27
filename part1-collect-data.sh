@@ -8,11 +8,11 @@ if [ -z "$DS" ]; then
     exit 1
 else
     if [ "$DS" = "train" ]; then
-        ARRAY_END=20
+        N=20
     elif [ "$DS" = "valid" ]; then
-        ARRAY_END=5
+        N=5
     elif [ "$DS" = "test" ]; then
-        ARRAY_END=5
+        N=5
     else
         echo "Incorrect dataset group $DS"
         exit 1
@@ -21,29 +21,29 @@ fi
 
 DATADIR=data/${DS}
 
-mkdir -p $DATADIR
+rm -rf $DATADIR; mkdir -p $DATADIR
 
-INST_MAIN_DIR=$PWD/instances
+INSTDIR=$PWD/instances
 
-SOL_DIR=$PWD/solutions
+SOLDIR=$PWD/solutions
 
-INST_SEED_LIST=($(<data-problem-seed-lists/${DS}.txt))
+INST_SEED_LIST=($(<problem-seed-lists/$DS.txt))
 
 cd collect-data-deploy/collect-data/build
 
-for (( run=0; run<="$ARRAY_END"; run++ )); do
+for (( run=0; run<="$N"; run++ )); do
 
     SAMPLE=${INST_SEED_LIST[$run]}
     IFS=$','; split=($SAMPLE); unset IFS;
 
     EP=${split[0]}
     INST_ID=${split[1]}
-    S1=${split[2]}
-    S2=${split[3]}
-    S3=${split[4]}
+    #MAINSEED=${split[2]}
+    S1=${split[3]}
+    S2=${split[4]}
+    S3=${split[5]}
 
     echo "Episode $EP, solving instance $INST_ID with seeds $S1, $S2 and $S3"
 
-    ./data $EP $INST_MAIN_DIR/orlib_10_0_1_w_${INST_ID}.lp $S1 $S2 $S3 $DS s ${SOL_DIR}/orlib_10_0_1_w_${INST_ID}.lp.csv
-
+    ./data $EP $INSTDIR/orlib_10_0_1_w_${INST_ID}.lp $S1 $S2 $S3 $DS s $SOLDIR/orlib_10_0_1_w_${INST_ID}.lp.csv
 done

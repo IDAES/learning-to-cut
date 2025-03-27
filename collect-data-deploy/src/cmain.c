@@ -73,11 +73,16 @@ SCIP_RETCODE runShell(char** argv)
    strcat(data_dir, episode_id);
 
    char command[MAXCHAR];
+   int nchars, status;
 
-   int result = snprintf(command, sizeof(command), "mkdir -p %s", data_dir);
-   //printf("Result of snprintf %d\n", result);
+   nchars = snprintf(command, sizeof(command), "mkdir -p %s", data_dir);
 
-   int status = system(command);
+   if ( (nchars >= MAXCHAR) || (nchars < 0) ) {
+      printf("nchars: %d Failed to create the command string.\n", nchars);
+      return -1;
+   }
+
+   status = system(command);
 
    if (status != 0)
       printf("Failed to create directory.\n");
@@ -92,19 +97,28 @@ SCIP_RETCODE runShell(char** argv)
 
    printf("Main seed: %s\n", argv[1]);
 
-   strcpy(result_dir, "../../../results/");
+   #ifdef TEST
+   strcpy(result_dir, "../../results/");
+   #else
+   if ( strcmp(solfilename, "-") == 0 )
+      strcpy(result_dir, "../../../results-no-sol/");
+   else
+      strcpy(result_dir, "../../../results/");
+
+   #endif
    strcat(result_dir, score_type);
 
    char command[MAXCHAR];
+   int nchars, status;
 
-   int nchars = snprintf(command, sizeof(command), "mkdir -p %s", result_dir);
+   nchars = snprintf(command, sizeof(command), "mkdir -p %s", result_dir);
 
    if ( (nchars >= MAXCHAR) || (nchars < 0) ) {
       printf("nchars: %d Failed to create the command string.\n", nchars);
       return -1;
    }
 
-   int status = system(command);
+   status = system(command);
 
    if (status != 0) {
       printf("Failed to create directory %s.\n", result_dir);
@@ -124,7 +138,11 @@ SCIP_RETCODE runShell(char** argv)
    FILE* reg_model_file;
    char reg_model_file_name[MAXCHAR];
 
+   #ifdef TEST
+   strcpy(reg_model_file_name, "../../../../models/");
+   #else
    strcpy(reg_model_file_name, "../../../models/");
+   #endif
    strcat(reg_model_file_name, score_type);
    strcat(reg_model_file_name, "/");
    strcat(reg_model_file_name, argv[1]);
@@ -133,12 +151,10 @@ SCIP_RETCODE runShell(char** argv)
    reg_model_file = fopen(reg_model_file_name, "r");
 
    if (reg_model_file == NULL) {
-      printf("No regression model file found! \n");
-      printf("File name: %s\n", reg_model_file_name);
+      printf("No regression model file with name %s found! \n", reg_model_file_name);
       return -1;
    }
 
-   // Initiliaze arrays for regression model coefs
    char row[MAXCHAR];
    
    int ncoefficients = 0;
@@ -147,8 +163,6 @@ SCIP_RETCODE runShell(char** argv)
    fgets(row, MAXCHAR, reg_model_file);
 
    reg_n_params = atoi(row);
-
-   printf("Number of parameters (read from reg. model file): %d \n", reg_n_params);
 
    assert(reg_n_params > 0);
 
@@ -192,11 +206,11 @@ SCIP_RETCODE runShell(char** argv)
       }
       ncoefficients ++;
    }
-   printf("Number of coefficients in the reg. model: %d \n", ncoefficients);
+
    fclose(reg_model_file);
 
    if( reg_n_params != ncoefficients) {
-      printf("Number of parameters read does not equal the number of coefficients!\n");
+      printf("Number of parameters read (%d) does not equal the number of coefficients (%d) in the file!\n", reg_n_params, ncoefficients);
       free(reg_coef);
       free(reg_model_int);
       return -1;
@@ -216,7 +230,10 @@ SCIP_RETCODE runShell(char** argv)
 
    SCIP_CALL( SCIPreadProb(scip, filename, NULL) );
 
-   SCIP_CALL( SCIPreadSol(scip, solfilename) );
+   if ( strcmp(solfilename, "-") == 0 )
+      printf("Solution file not provided\n");
+   else
+      SCIP_CALL( SCIPreadSol(scip, solfilename) );
 
    SCIP_CALL( SCIPallocBlockMemoryArray(scip, &features, n_features * ncuts_alloc) );
 
@@ -348,6 +365,9 @@ SCIP_RETCODE runShell(char** argv)
 
    free(reg_coef);
    free(reg_model_int);
+
+   #else
+   printf("Total # cuts: %d\n", cut_counter);
    #endif
 
 
