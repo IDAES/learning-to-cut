@@ -26,16 +26,41 @@ All instances reside in the `instances/` folder. The split of problems into trai
 ## Data Collection
 To collect data for the training dataset, run
 
-`bash part1-collect-data.sh train`
+`bash part1-collect-data.sh train` .
 
 For the validation and test datasets, replace the argument `train` with `valid` and `test`, respectively.
 
 ## Datasets
 
+To build datasets, run
+
+`bash part2-create-datasets.sh 0` .
+
+Changing the argument will produce a different training dataset by selecting a different subset of all collected training observations.
+
 ## Building models
+
+To build a models with one of the targets (e.g., logScore) in `targets.json`, run
+
+`bash part3-build-model.sh logScore` .
 
 ## Evaluating cut selectors
 
+To evaluate the learned models, SCIP's default cut selector or the bound improvement target, select a cut selector (e.g., logScore) and run 
+
+`bash part4-evaluate-cut-selector.sh logScore` .
+
+If no solution file is provided, set NOSOL to 1 in the script.
+
+## Compare results
+
+To summarize and compare results, run
+
+`bash summarize_results.sh` .
+
+This script produces statistics such as mean solving time and integrality gap closed (IGC) over the evaluated instances.
+
+For runs with NOSOL=1, the solver is not likely to find a primal solution at the root, therefore the IGC will be 0. These instances can be compared by the final dual bounds, where higher bounds indicate more progress.
 
 ## References
 
