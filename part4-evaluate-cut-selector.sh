@@ -63,7 +63,7 @@ do
 	PRB=$INSTDIR/${ev_inst_array[$run]}
 
 	if [[ "$NOSOL" -eq 1 ]]; then
-    	SOLFILENAME=-
+    	SOLFILENAME="-"
 	else
 		SOLFILENAME=$SOLDIR/${ev_inst_array[$run]}.csv
 	fi
